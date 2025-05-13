@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flywheel Moment of Inertia Virtual Lab</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      background: #f2f2f2;
+    }
+    canvas {
+      background: #e0e0e0;
+      border: 2px solid #333;
+      border-radius: 10px;
+    }
+    #controls {
+      margin-top: 20px;
+    }
+    label, input {
+      margin: 5px;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 15px;
+      background-color: #2e86de;
+      border: none;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #1e5fa1;
+    }
+    #result {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Flywheel Moment of Inertia Virtual Lab</h1>
+  <canvas id="simulationCanvas" width="600" height="400"></canvas>
+  <div id="controls">
+    <label>Mass of flywheel (kg): <input type="number" id="flywheelMass" value="5" step="0.1"></label>
+    <label>Radius of flywheel (m): <input type="number" id="flywheelRadius" value="0.1" step="0.01"></label><br>
+    <label>Mass of hanging weight (kg): <input type="number" id="weightMass" value="0.2" step="0.01"></label>
+    <label>Drop height (m): <input type="number" id="dropHeight" value="1.0" step="0.1"></label><br>
+    <button onclick="startExperiment()">Release</button>
+    <button onclick="resetExperiment()">Reset</button>
+  </div>
+  <div id="result"></div>
+  <script>
+    const canvas = document.getElementById('simulationCanvas');
+    const ctx = canvas.getContext('2d');
+    let animationFrame;
+
+    let flywheelMass = 5;
+    let flywheelRadius = 0.1;
+    let weightMass = 0.2;
+    let dropHeight = 1.0;
+    let positionY = 0;
+    let isFalling = false;
+    let startTime;
+    const g = 9.8;
+
+    function drawSetup() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Flywheel
+      ctx.save();
+      ctx.translate(300, 100);
+      ctx.fillStyle = '#666';
+      ctx.beginPath();
+      ctx.arc(0, 0, 60, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+      ctx.restore();
+
+      // Hanging weight
+      const stringY = 100 + positionY;
+      ctx.beginPath();
+      ctx.moveTo(300, 100);
+      ctx.lineTo(300, stringY);
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(300, stringY + 10, 15, 0, 2 * Math.PI);
+      ctx.fillStyle = '#ff5050';
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    function animate() {
+      if (!isFalling) return;
+      const elapsed = (Date.now() - startTime) / 1000;
+      positionY = Math.min((elapsed * elapsed * g * 100) / 2, dropHeight * 100);
+      drawSetup();
+
+      if (positionY >= dropHeight * 100) {
+        isFalling = false;
+        calculateMomentOfInertia(elapsed);
+      } else {
+        animationFrame = requestAnimationFrame(animate);
+      }
+    }
+
+    function calculateMomentOfInertia(timeTaken) {
+      const h = dropHeight;
+      const m = weightMass;
+      const r = flywheelRadius;
+      const a = (2 * h) / (timeTaken * timeTaken);
+      const I = ((m * r * r * g) / a) - (m * r * r);
+      document.getElementById('result').innerText =
+        `Moment of Inertia (I) = ${I.toFixed(4)} kg·m²`;
+    }
+
+    function startExperiment() {
+      flywheelMass = parseFloat(document.getElementById('flywheelMass').value);
+      flywheelRadius = parseFloat(document.getElementById('flywheelRadius').value);
+      weightMass = parseFloat(document.getElementById('weightMass').value);
+      dropHeight = parseFloat(document.getElementById('dropHeight').value);
+      positionY = 0;
+      isFalling = true;
+      startTime = Date.now();
+      drawSetup();
+      animate();
+    }
+
+    function resetExperiment() {
+      cancelAnimationFrame(animationFrame);
+      positionY = 0;
+      isFalling = false;
+      drawSetup();
+      document.getElementById('result').innerText = '';
+    }
+
+    drawSetup();
+  </script>
+</body>
+</html>
